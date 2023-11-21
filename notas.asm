@@ -17,8 +17,7 @@ TITLE notas
     MSG_P_ATUAIS DB 10,13,"Pesos atuais: $"
     MSG_P DB 10,13,"    PX: $"
     MSG_P_INSIRA DB 10,13,"Insira os novos pesos (valores de 0 a 9):$"
-    MSG_A_NOME DB 10,13,"Insira o nome do aluno (max 30 char): $"
-    MSG_A_LINE DB 30 DUP('_'),'$'
+    MSG_A_INSIRA DB 10,13,"Insira o nome do aluno (max 30 char): ", 30 DUP('_'), 30 DUP(8), '$'
     MSG_ERRANGE DB 10,13,"Valor fora do intervalo! Insira novamente: $"
 
 ;tabela:
@@ -30,6 +29,7 @@ TITLE notas
 
         MOV AX,@DATA
         MOV DS,AX
+        MOV ES,AX
 
         ;CALL @DEFPESO
         CALL @NOVOALUNO
@@ -120,55 +120,73 @@ TITLE notas
     @NOVOALUNO PROC
 
         MOV AH,9
-        LEA DX, MSG_A_NOME
+        LEA DX,MSG_A_INSIRA
         INT 21h
-        ; LEA DX, MSG_A_LINE
-        ; INT 21h
-        
 
         MOV CX,30
         LEA DI,TABELA[61]
-        MOV AH,1
+        CLD
 
         INSERE_A:
-
-            LE_ALUNO: INT 21h
-            CMP AL,13
-            JE NOVOA_RET
-            CMP AL,8 ;COMPARA COM BACKSPACE
-            JE INSEREA_APAGA
-            MOV [DI],AL
-            INC DI
-
-        LOOP INSERE_A
-        JMP NOVOA_RET
-
-        INSEREA_APAGA:
             MOV AH,2
-            MOV DL,32 ;PRINTA ESPACO
+            MOV DL,32
             INT 21h
-            MOV AH,1
-            CMP CX,30 ;SE JA TIVER 30 NO CONTADOR, NAO EXECUTA ABAIXO
-            JE LE_ALUNO
-            MOV AH,2
             MOV DL,8
             INT 21h
-            MOV AH,1
+            LE_ALUNO: MOV AH,1
+            INT 21h
+            CMP AL,13
+            JE FIM
+            CMP AL,8
+            JE INSEREA_BACKESP
+            STOSB
+        LOOP INSERE_A
+        JMP FIM
+
+        INSEREA_BACKESP:
+            
+            CMP CX,30
+            JE INICIAL
+            MOV AH,2
+            MOV DL,'_'
+            INT 21h
+            INT 21h
+            MOV DL,8
+            INT 21h
+            INT 21h
             INC CX
+            DEC DI
+            MOV AL,'-'
+            STOSB
+            DEC DI
+            JMP INSERE_A
+
+        INICIAL:
+            MOV AH,2
+            MOV DL,32
+            INT 21h
             JMP LE_ALUNO
 
-        NOVOA_RET:
-
+        FIM:
+        
         MOV AH,9
         LEA DX,TABELA
         INT 21h
-
+        
         RET
 
     @NOVOALUNO ENDP
+
 
 END MAIN
 
 ;adicionar correção de caixa de texto
 ;VER SE EH MELHOR O JMP ANTES DO RET OU DEPOIS
 ;VER SE COMPENSA ASPAS SIMPLES OU DUPLAS
+;IMPLEMENTAR _ NAS NOTAS
+;FAZER _ ATUAL SUMIR
+;CORES NA MEDIA
+;NA EDITAR, FAZER PRINTAR O NOME DELE E COMEÇA NO FINAL, PARA PODER APAGAR MELHOR
+;MENSAGEM DE MAXIMO ATINGIDO, ALTERE OU EXCLUA ALGUM (EXCLUA UM PARA ADICIONAR OU ALTERE UM EXISTENTE)
+;alunos_atual
+;organizar .data: pode compensar guardar as informacoes dentro só da propria tabela ou mensagens
