@@ -2,6 +2,31 @@ TITLE notas
 .MODEL SMALL
 .STACK 100h
 .DATA
+
+    ;TABELA EXEMPLO
+    ;NOME------------------------------P1----P2----P3----MEDIA
+    ;Nome1-----------------------------00----00----00----00
+    ;teste-----------------------------00----00----00----00
+    ;Mauricio Lima Bordon--------------00----00----00----00
+    ;Isabela Éverton Crestana----------00----00----00----00
+    ;Ricardo Pannain-------------------00----00----00----00
+    ;Pessoa 5--------------------------00----00----00----00
+
+    ;Header na primeira linha. Restante:
+    ; Ate 30 espacos para o nome, sendo completados com '-'
+    ; 4 '-' para espacamento
+    ; 2 espacos para a nota1
+    ; 4 '-' para espacamento
+    ; 2 espacos para a nota2
+    ; 4 '-' para espacamento
+    ; 2 espacos para a nota 3
+    ; 4 '-' para espacamento
+    ; 2 espacos para a media
+
+    ;Nomes: armazenados na tabela
+    ;Notas: armazeadas na tabela
+    ;Pesos: armazenados na mensagem MSG_P_ATUAIS
+
     PESOS DB 8,5,9
     TABELA DB 10,13, "NOME", 30 DUP('-'), "P1", 4 DUP('-'), "P2", 4 DUP('-'), "P3", 4 DUP('-'), "MEDIA"
            DB 5 DUP(10,13, 30 DUP('-'), 4 DUP('-'), "00", 4 DUP('-'), "00", 4 DUP('-'), "00", 4 DUP('-'), "00"), '$'
@@ -180,13 +205,13 @@ TITLE notas
 
 END MAIN
 
-;adicionar correção de caixa de texto
-;VER SE EH MELHOR O JMP ANTES DO RET OU DEPOIS
 ;VER SE COMPENSA ASPAS SIMPLES OU DUPLAS
 ;IMPLEMENTAR _ NAS NOTAS
-;FAZER _ ATUAL SUMIR
 ;CORES NA MEDIA
 ;NA EDITAR, FAZER PRINTAR O NOME DELE E COMEÇA NO FINAL, PARA PODER APAGAR MELHOR
 ;MENSAGEM DE MAXIMO ATINGIDO, ALTERE OU EXCLUA ALGUM (EXCLUA UM PARA ADICIONAR OU ALTERE UM EXISTENTE)
 ;alunos_atual
 ;organizar .data: pode compensar guardar as informacoes dentro só da propria tabela ou mensagens
+;para editar, pegar da propria tabela: colocar um $ temporario e armazenar o valor onde o $ vai entrar em cima num registrador (o $ deve ser colocado em cima de um "-" - talvez nao precise de registrador -, ou seja, é necessario usar as instrucoes novas para descobrir onde fica o primeiro da linha
+;colocar uma tabela de conversao dos chars que assembly nao le (como o Ç)
+;adicionar leitura de acentos

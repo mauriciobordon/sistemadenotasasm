@@ -10,7 +10,18 @@ TITLE teste
         MOV DS,AX
         MOV ES,AX
 
-        
+        INICIO:
+            MOV AH,1
+            INT 21h
+
+            MOV DL,AL
+
+            MOV AH,2
+            INT 21h
+
+            MOV DL,13
+            INT 21h
+        LOOP INICIO
 
         MOV AH,4CH
         INT 21h
