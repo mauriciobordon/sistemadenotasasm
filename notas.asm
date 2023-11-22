@@ -20,12 +20,12 @@ TITLE notas
         PUSH CX
         PUSHF
 
-        LEA registrador,TABELA[61]
+        LEA registrador,TABELA[65]
         MOV CL,linha
         AND CX,0Fh
 
         PASSALINHA:
-            ADD registrador,56
+            ADD registrador,60
         LOOP PASSALINHA
 
         POPF
@@ -37,14 +37,16 @@ TITLE notas
 .DATA
 
     ;TABELA EXEMPLO
-    ;NOME------------------------------P1----P2----P3----MEDIA
-    ;teste-----------------------------00----00----00----00
-    ;Mauricio Lima Bordon--------------00----00----00----00
-    ;Isabela Everton Crestana----------00----00----00----00
-    ;Ricardo Pannain-------------------00----00----00----00
-    ;Pessoa 5--------------------------00----00----00----00
+    ;ID--NOME------------------------------P1----P2----P3----MEDIA
+    ;01--teste-----------------------------00----00----00----00
+    ;02--Mauricio Lima Bordon--------------00----00----00----00
+    ;03--Isabela Everton Crestana----------00----00----00----00
+    ;04--Ricardo Pannain-------------------00----00----00----00
+    ;05--Pessoa 5--------------------------00----00----00----00
 
     ;Header na primeira linha. Restante:
+    ; 2 espacos para o ID
+    ; 2 '-' para espacamento
     ; 30 espacos para o nome, sendo completados com '-'
     ; 4 '-' para espacamento
     ; 2 espacos para a nota1
@@ -62,11 +64,11 @@ TITLE notas
     ;Medias: calculadas automaticamente na print da tabela
 
     PESOS DB 1,1,1
-    TABELA DB 10,13, "NOME", 30 DUP('-'), "P1", 4 DUP('-'), "P2", 4 DUP('-'), "P3", 4 DUP('-'), "MEDIA"
-           DB 5 DUP(10,13, 30 DUP('-'), 4 DUP('-'), "00", 4 DUP('-'), "00", 4 DUP('-'), "00", 4 DUP('-'), "00"), '$'
+    TABELA DB 10,13, "ID--NOME", 30 DUP('-'), "P1", 4 DUP('-'), "P2", 4 DUP('-'), "P3", 4 DUP('-'), "MEDIA"
+           DB 5 DUP(10,13, "00--", 34 DUP('-'), "00", 4 DUP('-'), "00", 4 DUP('-'), "00", 4 DUP('-'), "00"), '$'
     MSG_MENU DB 10,13,"Escolha uma opcao:"
              DB 10,13,"    1- Incluir aluno"
-             DB 10,13,"    2- Incluir/alterar notas" ;todos os alunos em uma prova ou uma nota individualmente
+             DB 10,13,"    2- Incluir/alterar notas"
              DB 10,13,"    3- Imprimir tabela"
              DB 10,13,"    4- Alterar pesos das provas"
              DB 10,13,"    5- Remover aluno"
@@ -94,15 +96,16 @@ TITLE notas
                DB 10,13,"    1- Incluir todas as notas para uma das provas"
                DB 10,13,"    2- Alterar uma nota nota de um aluno"
                DB 10,13," > $"
-    MSG_N1_PROVA DB 10,13,"Insira a prova com que deseja desejada: P$"
+    MSG_N1_PROVA DB 10,13,"Insira a prova com que deseja trabalhar: P$"
     MSG_N1_NOTADE DB 10,13,"Nota de $"
-    MSG_N2_ALUNO DB 10,13,"Insira o aluno"
-    ;MSG_N2_PROVA
+    MSG_N2_ID DB 10,13,"Insira o ID do aluno com que deseja trabalhar: $"
+    MSG_N2_PROVA DB 10,13,"Insira a prova cuja nota deseja alterar: P$"
+    MSG_N2_ESCOLHIDA DB 10,13,"Altere a nota escolhida: $"
 
 ;tabela:
-    ;primeira linha (titulos) com 59 bytes
-    ;segunda linha comeca com 2 bytes para linebreak (tratar primeira linha como 61 bytes)
-    ;seguindo essa logica, adiciona-se 56 a cada proxima linha
+    ;primeira linha (titulos) com 63 bytes
+    ;segunda linha comeca com 2 bytes para breakline (tratar primeira linha como 65 bytes)
+    ;seguindo essa logica, adiciona-se 60 a cada proxima linha
 .CODE
 
     MAIN PROC                                           ;Abertura do procedimento principal
@@ -227,7 +230,7 @@ TITLE notas
 
     @NOVOALUNO PROC                                     ;Abertura do procedimento de insercao de aluno
 
-        CMP MSG_A_INSIRA[26],35h                        ;Compara o numero de alunos com 5, redirecionando para saida caso o seja
+        CMP MSG_A_INSIRA[26],35h                        ;Compara o numero de alunos com '5', redirecionando para saida caso o seja
         JE NOVOA_MAX                                    ;=
 
         MOV AH,9                                        ;Printa string pedindo insercao do nome do aluno
@@ -238,6 +241,13 @@ TITLE notas
 
         MOV CX,30                                       ;Define o contador como 30
         CLD                                             ;Zera o flag de direcao (define incremento de vetor)
+
+        INC DI                                          ;Coloca o ID do aluno adicionado na tabela e posiciona o DI para as proximas acoes
+        MOV AL,MSG_A_INSIRA[26]                         ;=
+        INC AL                                          ;=
+        STOSB                                           ;=
+        MOV AL,'-'                                      ;=
+        ADD DI,2                                        ;=
 
         INSERE_A:                                       ;Laco para leitura do nome
             MOV AH,2                                        ;Printa um espaco vazio na posicao atual da linha de leitura
@@ -250,12 +260,12 @@ TITLE notas
             CMP AL,13                                       ;Compara com enter, finalizando a leitura caso o seja
             JE NOVOA_FIM                                    ;=
             CMP AL,8                                        ;Compara com backspace, redirecionando para o trecho correspondente
-            JE INSEREA_BACKSP                               ;-
+            JE INSEREA_BCKSP                               ;-
             STOSB                                           ;Nao sendo nenhum desses, guarda o char na matriz
         LOOP INSERE_A                                   ;Repete ate o enter ou preencher 30 chars
         JMP NOVOA_FIM                                   ;Pula o trecho abaixo
 
-        INSEREA_BACKSP:                                     ;Label para tratamento de backspace
+        INSEREA_BCKSP:                                     ;Label para tratamento de backspace
             CMP CX,30                                       ;Caso tenha tentado apagar sem haver qualquer char digitado, redireciona para o tratamento em questao
             JE INICIAL                                      ;=
             MOV AH,2                                        ;Define funcao de print de char
@@ -319,11 +329,11 @@ TITLE notas
         N1_PROVA: MOV AH,1                              ;Le a escolha
         INT 21h                                         ;=
         CMP AL,31h                                      ;Compara com os extremos, redirecionando para tratamento de erro se estiver fora do intervalo
-        JB N1_OPC_ERRANGE                               ;=
+        JB N1_P_ERRANGE                                 ;=
         CMP AL,33h                                      ;=
-        JA N1_OPC_ERRANGE                               ;=
+        JA N1_P_ERRANGE                                 ;=
 
-        LEA BX,TABELA[90]                               ;Aponta BX para 6 posicoes antes do segundo digito da primeira nota na tabela
+        LEA BX,TABELA[98]                               ;Aponta BX para 6 posicoes antes do segundo digito da primeira nota na tabela
         AND AL,0Fh                                      ;Transforma o char de AL em digito decimal para funcionar como contador
 
         N1_POS_COLUNA:                                  ;Laco para posicionar BX
@@ -332,7 +342,7 @@ TITLE notas
         JNZ N1_POS_COLUNA                               ;=
         CLD                                             ;Zera o flag de direcao (define incremento de vetor)
 
-        LEA SI,TABELA[61]                               ;Aponta SI para a primeira posicao da primeira linha de nomes na tabela
+        LEA SI,TABELA[69]                               ;Aponta SI para a primeira posicao da primeira linha de nomes na tabela
         MOV CL,MSG_A_INSIRA[26]                         ;Guarda em CL o numero de alunos atual para funcionar como contador
         AND CX,0Fh                                      ;Zera os outros bits do contador
 
@@ -380,7 +390,7 @@ TITLE notas
             MOV BYTE PTR [BX],30h                           ;=
             JMP N1_VOLTA                                    ;Pula os tratamentos especificos abaixo
 
-            N1_OPC_ERRANGE:                                 ;Acusa erro de intervalo e pede para inserir a prova novamente
+            N1_P_ERRANGE:                                   ;Acusa erro de intervalo e pede para inserir a prova novamente
                 RANGE_ERROR                                     ;=
                 MOV AH,2                                        ;=
                 MOV DL,'P'                                      ;=
@@ -394,8 +404,8 @@ TITLE notas
                 MOV BYTE PTR [BX],30h                       ;=
                 INC BX                                      ;=
 
-            N1_VOLTA: ADD SI,56                             ;Passa para a proxima linha da tabela no registrador que aponta para o inicio dela
-            ADD BX,56                                       ;Passa para a proxima linha da tabela no registrador que aponta para a nota da prova selecionada
+            N1_VOLTA: ADD SI,60                             ;Passa para a proxima linha da tabela no registrador que aponta para o inicio dela
+            ADD BX,60                                       ;Passa para a proxima linha da tabela no registrador que aponta para a nota da prova selecionada
 
             MOV BYTE PTR [DI],'-'                           ;Remove o cifrao temporario adicionado antes
         LOOP N1_LENOTA                                  ;Repete para o numero de alunos existente
@@ -416,8 +426,150 @@ TITLE notas
     @EDITARNOTA PROC                                    ;Abertura do procedimento de edicao de nota especifica
 
         MOV AH,9
+        LEA DX,MSG_N2_ID
+        INT 21h
+        
+        N2_DIGNULO: MOV AH,1
+        INT 21h
+        CMP AL,30h
+        JE N2_DIGNULO
+        JB N2_ID_ERRANGE
+        CMP AL,MSG_A_INSIRA[26]
+        JA N2_ID_ERRANGE
 
-        RET
+        LEA DI,TABELA[37]
+        AND AL,0Fh
+        
+        N2_ROW:
+            ADD DI,60
+        DEC AL
+        JNZ N2_ROW
+
+        MOV AH,9
+        LEA DX,MSG_N2_PROVA
+        INT 21h
+
+        MOV AH,1
+        INT 21h
+        CMP AL,30h
+        JB N2_P_ERRANGE
+        CMP AL,33h
+        JA N2_P_ERRANGE
+
+        AND AL,0Fh
+
+        N2_COL:
+            ADD DI,6
+        DEC AL
+        JNZ N2_COL
+
+        MOV SI,DI
+
+        MOV AH,9
+        LEA DX,MSG_N2_ESCOLHIDA
+        INT 21h
+
+        MOV AH,2
+        MOV DL,[DI]
+        INT 21h
+        INC DI
+        MOV DL,[DI]
+        INT 21h
+        INC DI
+        MOV BL,1
+        CLD
+        JMP N2_LEDIG
+
+            N2_VOLTA: INC DI
+            N2_LEDIG: MOV AH,1
+            INT 21h
+            CMP AL,13
+            JE N2_RET_AUX
+            CMP AL,8
+            JE N2_BCKSP
+            CMP AL,30h
+            JB N2_NOTA_ERRANGE
+            CMP AL,39h
+            JA N2_NOTA_ERRANGE
+            DEC BL
+            JE N2_MAX
+            STOSB
+            JMP N2_LEDIG
+
+        N2_ID_ERRANGE:
+            RANGE_ERROR
+            JMP N2_DIGNULO
+
+        N2_P_ERRANGE:
+            RANGE_ERROR                                     ;=
+            MOV AH,2                                        ;=
+            MOV DL,'P'                                      ;=
+            INT 21h                                         ;=
+            JMP N1_PROVA 
+
+        N2_BCKSP:
+            DEC DI
+            MOV BYTE PTR [DI],30h
+            MOV AH,2
+            MOV DL,32
+            INT 21h
+            MOV DL,8
+            INT 21h
+            INC BL
+            CMP BL,3
+            JE N2_UMOUZERO
+            JMP N2_LEDIG
+
+        N2_RET_AUX: JMP N2_RET
+
+        N2_MAX:
+            MOV AH,2
+            MOV DL,8
+            INT 21h
+            MOV DL,32
+            INT 21h
+            MOV DL,8
+            INT 21h
+            MOV BL,1
+            JMP N2_LEDIG
+
+        N2_UMOUZERO:
+            MOV AH,1
+            INT 21h
+            CMP AL,13
+            JE N2_RET
+            CMP AL,8
+            JE N2_MAX_BCKSP
+            DEC BL
+            CMP AL,30h
+            JE N2_VOLTA
+            CMP AL,31h
+            JNE N2_NOTA_ERRANGE
+            MOV BYTE PTR [DI],31h
+            INC DI
+            JMP N2_LEDIG
+
+        N2_NOTA_ERRANGE:
+            RANGE_ERROR
+            MOV AH,2
+            MOV DL,[SI]
+            INT 21h
+            INC SI
+            MOV DL,[SI]
+            INT 21h
+            DEC SI
+            MOV BL,1
+            MOV DI,SI
+            ADD DI,2
+            JMP N2_LEDIG
+
+        N2_MAX_BCKSP:
+            MOV AH,2
+            MOV DL,32
+            INT 21h
+            JMP N2_UMOUZERO
+
+        N2_RET: RET
 
     @EDITARNOTA ENDP                                    ;Fechamento do procedimento de edicao de nota especifica
 
@@ -446,3 +598,13 @@ END MAIN                                                ;Fechamento do codigo
 ;NA EDITAR, FAZER PRINTAR O NOME DELE E COMEÇA NO FINAL, PARA PODER APAGAR MELHOR
 ;para editar, pegar da propria tabela: colocar um $ temporario e armazenar o valor onde o $ vai entrar em cima num registrador (o $ deve ser colocado em cima de um "-" - talvez nao precise de registrador -, ou seja, é necessario usar as instrucoes novas para descobrir onde fica o primeiro da linha
 ;alterar a macro2 para os casos de linha a linha, nao de linha especifica
+;na leitura de ID, se for 0, soh ler outro char
+
+;MACRO PARA APAGAR UM CHAR, TALVEZ SOH UM 32 E UM 8, NAO 8,32,8
+
+;BL: DIGITOS QUE PODE APAGAR + 1
+;IMPEDIR DE APAGAR AS MENSAGENS E TAL
+;INCLUIR SAIDAS PARA QUANDO NAO TIVER ALUNOS
+
+;SE COLOCAR 2-9 NO DIGITO DA DEZENA, MOVE PARA UNIDADE E ACABA PROC
+;SE DIGITOU 1 NA DEZENA, SOH PODE ESPERAR 0 OU ENTER
