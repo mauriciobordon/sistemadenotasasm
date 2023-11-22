@@ -95,6 +95,8 @@ TITLE notas
                DB 10,13," > $"
     MSG_N1_PROVA DB 10,13,"Insira a prova com que deseja desejada: P$"
     MSG_N1_NOTADE DB 10,13,"Nota de $"
+    MSG_N2_ALUNO DB 10,13,"Insira o aluno"
+    ;MSG_N2_PROVA
 
 ;tabela:
     ;primeira linha (titulos) com 59 bytes
@@ -104,31 +106,31 @@ TITLE notas
 
     MAIN PROC
 
-        MOV AX,@DATA
-        MOV DS,AX
-        MOV ES,AX
+        MOV AX,@DATA                                    ;Permite o acesso as informacoes do seguimento de dados
+        MOV DS,AX                                       ;=
+        MOV ES,AX                                       ;=
 
-        MOV AH,9
-        LEA DX,MSG_INICIAL
-        INT 21h
+        MOV AH,9                                        ;Printa mensagem de abertura
+        LEA DX,MSG_INICIAL                              ;=
+        INT 21h                                         ;=
 
-        JMP MENU_INICIAL
-            CONTINUAR: MOV AH,9
-            LEA DX,MSG_CONTINUAR
-            INT 21h
-            MOV AH,7 ;LEITURA DE CHAR SEM ECHO
-            INT 21h
-            MOV AH,9
+        JMP MENU_INICIAL                                
+            CONTINUAR: MOV AH,9                         ;Printa mensagem esperando qualquer entrada para continuar e espera a entrada
+            LEA DX,MSG_CONTINUAR                        ;=
+            INT 21h                                     ;=
+            MOV AH,7                                    ;=
+            INT 21h                                     ;=
+            MOV AH,9                                    ;=
 
-        MENU_INICIAL:
-            LEA DX,MSG_MENU
-            INT 21h
-            ESCOLHE: MOV AH,1
-            INT 21h
-            CMP AL,30h
-            JE SAIR
-            CMP AL,31h
-            JE NOVOALUNO
+        MENU_INICIAL:                                   ;Printa mensagem de menu, le a opcao escolhida e direciona para a chamada correspondente
+            LEA DX,MSG_MENU                             ;=
+            INT 21h                                     ;=
+            ESCOLHE: MOV AH,1                           ;=
+            INT 21h                                     ;=
+            CMP AL,30h                                  ;=
+            JE SAIR                                     ;=
+            CMP AL,31h                                  ;=
+            JE NOVOALUNO                                ;=
             CMP AL,32h
             JE NOTA
             CMP AL,33h
@@ -164,25 +166,6 @@ TITLE notas
         INT 21h
 
     MAIN ENDP
-
-    PRINTATABELA PROC
-
-        MOV AH,9
-        ;LEA DX,TABELA2
-        INT 21h
-
-        MOV CL,'4'
-        MOV BX,1
-        MOV SI,61
-
-        MOV TABELA[SI][BX], CL
-
-        LEA DX,TABELA
-        INT 21h
-
-        RET
-
-    PRINTATABELA ENDP
 
     @DEFPESO PROC
 
@@ -249,14 +232,7 @@ TITLE notas
         LEA DX,MSG_A_INSIRA
         INT 21h
 
-        ;LEA DI,TABELA[61]
-        ;MOV CL,MSG_A_INSIRA[26]
-        ;AND CX,0Fh
-        ; MOV AL,MSG_A_INSIRA[26]
         POSICIONA_LINHA DI,MSG_A_INSIRA[26]
-        ;NOVOA_GOTOLINE:
-        ;    ADD DI,56
-        ;LOOP NOVOA_GOTOLINE
 
         MOV CX,30
         CLD
@@ -356,7 +332,7 @@ TITLE notas
         JB N1_OPC_ERRANGE
         CMP AL,33h
         JA N1_OPC_ERRANGE
-;;
+
         LEA BX,TABELA[90]
         AND AL,0Fh
 
@@ -365,15 +341,8 @@ TITLE notas
         DEC AL
         JNZ N1_POS_COLUNA
         CLD
-;
-        ;;LEA DI,TABELA[61]
-        ; MOV AL,'-'
-        ; REPNE SCASB
-        ; MOV [DI],'$'
 
         LEA SI,TABELA[61]
-        XOR DX,DX
-;        
         MOV CL,MSG_A_INSIRA[26]
         AND CX,0Fh
 
@@ -398,68 +367,66 @@ TITLE notas
             MOV DL,32
             INT 21h
             JMP N1_NOTA
-
-            N1_SEGDIG: CMP AL,1
-            JNZ ACABA_NOTA
             
             N1_NOTA: MOV AH,1
             INT 21h
-            CMP AL,13
-            JE ACABA_NOTA
             CMP AL,30h
             JB N1_NOTA_ERRANGE
             CMP AL,39h
             JA N1_NOTA_ERRANGE
 
-            ;MOV [BX],AL
-            PUSH AX
+            CMP AL,31h
+            JNE N1_PRIMDIG
+
+            N1_SEGDIG: INT 21h
             MOV DL,AL
-            MOV AL,10
-            MUL DL
-            POP AX
-            AND AL,0Fh
-            ADD DL,AL
+            MOV AL,31h
+            CMP DL,13
+            JE N1_PRIMDIG
+            CMP DL,30h
+            JNE N1_SEGDIG_ERRANGE
+            DEC BX
+            MOV [BX],AL
+            INC BX
+            MOV BYTE PTR [BX],30h
+            JMP N1_VOLTA
 
-            JMP N1_SEGDIG
-
-            ACABA_NOTA:
-            CMP DX,10
-            JE N1_DEZ
-            MOV [BX],DL
+            N1_OPC_ERRANGE:
+                RANGE_ERROR
+                MOV AH,2
+                MOV DL,'P'
+                INT 21h
+                JMP N1_PROVA
+            
+            N1_PRIMDIG:
+                OR AL,30h
+                MOV [BX],AL
+                DEC BX
+                MOV BYTE PTR [BX],30h
+                INC BX
 
             N1_VOLTA: ADD SI,56
             ADD BX,56
 
             MOV BYTE PTR [DI],'-'
-            ;;MOV SI,DI
         LOOP N1_LENOTA
-
-
-        
-        MOV DX,SI
         JMP N1_RET
-
-        N1_OPC_ERRANGE:
-            RANGE_ERROR
-            MOV AH,2
-            MOV DL,'P'
-            INT 21h
-            JMP N1_PROVA
-
-        N1_DEZ:
-            DEC BX
-            MOV BYTE PTR [BX],31h
-        JMP N1_VOLTA
 
         N1_NOTA_ERRANGE:
             RANGE_ERROR
             JMP N1_NOTA
+
+        N1_SEGDIG_ERRANGE:
+            RANGE_ERROR
+            JMP N1_SEGDIG
 
         N1_RET: RET
 
     @INCLUIRNOTAS ENDP
 
     @EDITARNOTA PROC
+
+        MOV AH,9
 
         RET
 
@@ -501,10 +468,11 @@ END MAIN
 ;zerar as notas antes de adicionar coisa em cima
 ;-> colocar zero no bit de '1'0 ou no 1'0'
 
+;MEDIA GARANTIDA OU MEDIA ATUAL?
+
 
 
 
 
     ;PERGUNTAR DOS POPS E PUSHS
-    ;PERGUNTAR SE A FUNCAO @OPCSNOTA PRECISA DE RET
     
