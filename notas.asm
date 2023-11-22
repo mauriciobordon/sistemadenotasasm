@@ -329,12 +329,18 @@ TITLE notas
         N_OPCOES: INT 21h
 
         CMP AL,31h
-        ;JE N_OPC1
+        JE N_OPC1
         CMP AL,32h
-        ;JE N_OPC2
+        JE N_OPC2
         RANGE_ERROR
         JMP N_OPCOES
 
+        N_OPC1: CALL @INCLUIRNOTAS
+                JMP NOPC_RET
+        N_OPC2: CALL @EDITARNOTA
+
+        NOPC_RET: RET
+        
     @OPCSNOTA ENDP
 
     @INCLUIRNOTAS PROC
@@ -350,19 +356,37 @@ TITLE notas
         JB N1_OPC_ERRANGE
         CMP AL,33h
         JA N1_OPC_ERRANGE
-
-        LEA DI,TABELA[96]
+;;
+        LEA BX,TABELA[90]
         AND AL,0Fh
 
         N1_POS_COLUNA:
-            ADD DI,6
-        CMP AL,0
+            ADD BX,6
+        DEC AL
         JNZ N1_POS_COLUNA
-
+        CLD
+;
+        ;;LEA DI,TABELA[61]
+        ; MOV AL,'-'
+        ; REPNE SCASB
+        ; MOV [DI],'$'
 
         LEA SI,TABELA[61]
-        
+        XOR DX,DX
+;        
+        MOV CL,MSG_A_INSIRA[26]
+        AND CX,0Fh
+
         N1_LENOTA:
+            MOV DI,SI
+            MOV AL,'-'
+            PUSH CX
+            MOV CX,31
+            REPNE SCASB
+            DEC DI
+            POP CX
+            MOV BYTE PTR [DI],'$'
+
             MOV AH,9
             LEA DX,MSG_N1_NOTADE
             INT 21h
@@ -375,7 +399,7 @@ TITLE notas
             INT 21h
             JMP N1_NOTA
 
-            CMP AL,31h
+            N1_SEGDIG: CMP AL,1
             JNZ ACABA_NOTA
             
             N1_NOTA: MOV AH,1
@@ -387,18 +411,33 @@ TITLE notas
             CMP AL,39h
             JA N1_NOTA_ERRANGE
 
-            MOV [DI],AL        
+            ;MOV [BX],AL
+            PUSH AX
+            MOV DL,AL
+            MOV AL,10
+            MUL DL
+            POP AX
+            AND AL,0Fh
+            ADD DL,AL
+
+            JMP N1_SEGDIG
 
             ACABA_NOTA:
-            ADD SI,56
-            ADD DI,56
+            CMP DX,10
+            JE N1_DEZ
+            MOV [BX],DL
+
+            N1_VOLTA: ADD SI,56
+            ADD BX,56
+
+            MOV BYTE PTR [DI],'-'
+            ;;MOV SI,DI
         LOOP N1_LENOTA
 
 
         
         MOV DX,SI
-
-
+        JMP N1_RET
 
         N1_OPC_ERRANGE:
             RANGE_ERROR
@@ -407,15 +446,30 @@ TITLE notas
             INT 21h
             JMP N1_PROVA
 
+        N1_DEZ:
+            DEC BX
+            MOV BYTE PTR [BX],31h
+        JMP N1_VOLTA
+
         N1_NOTA_ERRANGE:
             RANGE_ERROR
             JMP N1_NOTA
 
-        RET
+        N1_RET: RET
 
     @INCLUIRNOTAS ENDP
 
+    @EDITARNOTA PROC
+
+        RET
+
+    @EDITARNOTA ENDP
+
     @PRINTATABELA PROC
+
+        MOV AH,9
+        LEA DX,TABELA
+        INT 21h
 
         RET
 
@@ -444,3 +498,13 @@ END MAIN
 ;usar dois mov ah,2 no lugar de px (o que é mais pesado em assembly x86? um acesso à memória para printar uma string de 3 caracteres ou printar esses mesmos 3 caracteres usando MOV ah,2?)
 ;alterar a macro2 para os casos de linha a linha, nao de linha especifica
 ;ADICIONAR "PRESSIONE QUALQUER TECLA PARA CONTINUAR" EM MACRO
+;zerar as notas antes de adicionar coisa em cima
+;-> colocar zero no bit de '1'0 ou no 1'0'
+
+
+
+
+
+    ;PERGUNTAR DOS POPS E PUSHS
+    ;PERGUNTAR SE A FUNCAO @OPCSNOTA PRECISA DE RET
+    
