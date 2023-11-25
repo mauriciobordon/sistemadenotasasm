@@ -3,8 +3,8 @@ TITLE projetin
 .STACK 100h
 .DATA
     PESOS DB 3 DUP(1)
-    TABELA DB 10,13, ""NOME", 30 DUP('-'), "P1", 4 DUP('-'), "P2", 4 DUP('-'), "P3", 4 DUP('-'), "MEDIA"
-           DB 5 DUP(10,13, 30 DUP('-'), 4 DUP('-'), "00", 4 DUP('-'), "00", 4 DUP('-'), "00", 4 DUP('-'), "00"), '$'
+    TABELA DB 10,13, "ID--NOME", 30 DUP('-'), "P1", 4 DUP('-'), "P2", 4 DUP('-'), "P3", 4 DUP('-'), "MEDIA"
+           DB 5 DUP(10,13, "00--", 30 DUP('-'), 4 DUP('-'), "00", 4 DUP('-'), "00", 4 DUP('-'), "00", 4 DUP('-'), "00"), '$'
     TABELA2 DB 10,13, "NOME", 30 DUP( ), "P1", 4 DUP( ), "P2", 4 DUP( ), "P3", 4 DUP( ), "MEDIA"
             DB 5 DUP(10,13, 30 DUP( ), 4 DUP( ), "00", 4 DUP( ), "00", 4 DUP( ), "00", 4 DUP( ), "00"), '$'
     MSG_MENU DB 10,13,"Escolha uma opcao:"
@@ -47,8 +47,9 @@ TITLE projetin
         LEA DX,TABELA
         INT 21h
 
-        MOV CL,'X'
-        LEA BX,TABELA[98]
+        LEA BX,TABELA[103]
+        ADD BI,18
+        ADD BI,41
         MOV BYTE PTR [BX],'X'
         
 

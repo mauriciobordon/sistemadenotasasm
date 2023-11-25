@@ -246,7 +246,6 @@ TITLE notas
         MOV AL,MSG_A_INSIRA[26]                         ;=
         INC AL                                          ;=
         STOSB                                           ;=
-        MOV AL,'-'                                      ;=
         ADD DI,2                                        ;=
 
         INSERE_A:                                       ;Laco para leitura do nome
@@ -462,13 +461,28 @@ TITLE notas
             ADD DI,6
         DEC AL
         JNZ N2_COL
+        JMP N2_SETLEITURA
 
-        MOV SI,DI
+        N2_ID_ERRANGE:
+            RANGE_ERROR
+            JMP N2_DIGNULO
+
+        N2_P_ERRANGE:
+            RANGE_ERROR
+            MOV AH,2
+            MOV DL,'P'
+            INT 21h
+            JMP N1_PROVA
+
+        N2_SETLEITURA: MOV SI,DI
+        CLD
 
         MOV AH,9
         LEA DX,MSG_N2_ESCOLHIDA
         INT 21h
-
+        
+        N2_PRINTA: MOV BL,1
+        MOV DI,SI
         MOV AH,2
         MOV DL,[DI]
         INT 21h
@@ -476,98 +490,75 @@ TITLE notas
         MOV DL,[DI]
         INT 21h
         INC DI
-        MOV BL,1
-        CLD
-        JMP N2_LEDIG
 
-            N2_VOLTA: INC DI
-            N2_LEDIG: MOV AH,1
+        N2_LEITURA: MOV AH,1
+        INT 21h
+        CMP AL,13
+        JE N2_RET
+        CMP AL,8
+        JE N2_BCKSP
+        CMP AL,30h
+        JB N2_NOTA_ERRANGE
+        CMP AL,39h
+        JA N2_NOTA_ERRANGE
+
+        N2_JMP_BCKSP: CMP BL,1
+        JE N2_ESCREVE0
+        CMP BL,2
+        JE N2_ESCREVE1
+        CMP AL,32h
+        JB N2_UMOUZERO
+        PUSH AX
+        MOV AH,2
+        MOV DL,8
+        INT 21h
+        MOV DL,30h
+        INT 21h
+        POP DX
+        INT 21h
+        INC DI
+        STOSB
+        SUB BL,2
+        JMP N2_LEITURA
+
+        N2_ESCREVE0:
+            MOV AH,2
+            MOV DL,8
             INT 21h
-            CMP AL,13
-            JE N2_RET_AUX
-            CMP AL,8
-            JE N2_BCKSP
-            CMP AL,30h
-            JB N2_NOTA_ERRANGE
-            CMP AL,39h
-            JA N2_NOTA_ERRANGE
+            MOV DL,32
+            INT 21h
+            MOV DL,8
+            INT 21h
+            JMP N2_LEITURA
+
+        N2_ESCREVE1:
+            MOV [DI],AL
+            INC DI
             DEC BL
-            JE N2_MAX
-            STOSB
-            JMP N2_LEDIG
-
-        N2_ID_ERRANGE:
-            RANGE_ERROR
-            JMP N2_DIGNULO
-
-        N2_P_ERRANGE:
-            RANGE_ERROR                                     ;=
-            MOV AH,2                                        ;=
-            MOV DL,'P'                                      ;=
-            INT 21h                                         ;=
-            JMP N1_PROVA 
+            JMP N2_LEITURA
 
         N2_BCKSP:
-            DEC DI
-            MOV BYTE PTR [DI],30h
             MOV AH,2
             MOV DL,32
             INT 21h
+            CMP BL,3
+            JE N2_LEITURA
             MOV DL,8
             INT 21h
             INC BL
-            CMP BL,3
-            JE N2_UMOUZERO
-            JMP N2_LEDIG
-
-        N2_RET_AUX: JMP N2_RET
-
-        N2_MAX:
-            MOV AH,2
-            MOV DL,8
-            INT 21h
-            MOV DL,32
-            INT 21h
-            MOV DL,8
-            INT 21h
-            MOV BL,1
-            JMP N2_LEDIG
-
-        N2_UMOUZERO:
-            MOV AH,1
-            INT 21h
-            CMP AL,13
-            JE N2_RET
-            CMP AL,8
-            JE N2_MAX_BCKSP
-            DEC BL
-            CMP AL,30h
-            JE N2_VOLTA
-            CMP AL,31h
-            JNE N2_NOTA_ERRANGE
-            MOV BYTE PTR [DI],31h
-            INC DI
-            JMP N2_LEDIG
+            DEC DI
+            MOV BYTE PTR [DI],30h
+            JMP N2_LEITURA
 
         N2_NOTA_ERRANGE:
             RANGE_ERROR
-            MOV AH,2
-            MOV DL,[SI]
-            INT 21h
-            INC SI
-            MOV DL,[SI]
-            INT 21h
-            DEC SI
-            MOV BL,1
-            MOV DI,SI
-            ADD DI,2
-            JMP N2_LEDIG
+            JMP N2_PRINTA
 
-        N2_MAX_BCKSP:
-            MOV AH,2
-            MOV DL,32
-            INT 21h
-            JMP N2_UMOUZERO
+        N2_UMOUZERO:
+            MOV [DI],AL
+            DEC BL
+            INC DI
+            JMP N2_LEITURA
 
         N2_RET: RET
 
@@ -575,9 +566,91 @@ TITLE notas
 
     @PRINTATABELA PROC                                  ;Abertura do procedimento de print da tabela
 
+        LEA DI,TABELA[63]
+        LEA BX,PESOS
+        ; XOR DX,DX
+        ; XOR AX,AX
+        CLD
+
+        MOV CL,MSG_A_INSIRA[26]
+        AND CX,0Fh
+
+        PRINT_FINAL:
+            ADD DI,60
+        LOOP PRINT_FINAL
+
+        MOV BYTE PTR [DI],'$'
+
+        LEA SI,TABELA[123]
+
+        MOV CX,3
+
+        PRINT_DIVISOR:
+            MOV DH,[BX]
+            ADD DL,DH
+            INC BX
+        LOOP PRINT_DIVISOR
+        XOR DH,DH
+        PUSH DX
+
+        MOV CL,MSG_A_INSIRA[26]
+        AND CX,0Fh
+
+        PRINT_MEDIA:
+        PUSH CX
+            SUB BX,3
+            MOV CX,3
+            XOR DX,DX
+
+            PRINT_SOMATORIA:
+                PUSH DX
+
+                CMP BYTE PTR [SI],31h
+                JE PRINT_DEZ
+                INC SI
+                MOV AL,[SI]
+                AND AL,0Fh
+                JMP PRINT_MULPESO
+                PRINT_DEZ: MOV AL,10
+                INC SI
+                
+                PRINT_MULPESO: MOV DL,[BX]
+                INC BX
+
+                MUL DL
+                POP DX
+                ADD DX,AX ;APOS LOOP, DIVIDENDO EM BX
+                ADD SI,5
+            LOOP PRINT_SOMATORIA
+
+            MOV AX,DX
+            XOR DX,DX
+            POP CX
+
+            DIV CX
+
+            CMP AX,10
+            JE PRINT_MEDIADEZ
+            MOV BYTE PTR [SI],30h
+            INC SI
+            OR AL,30h
+            MOV [SI],AL
+            JMP PRINT_CONTINUA
+
+            PRINT_MEDIADEZ: MOV BYTE PTR [SI],31h
+            INC SI
+            MOV BYTE PTR [SI],30h
+
+            PRINT_CONTINUA: ADD SI,42
+            MOV BX,CX
+        POP CX
+        LOOP PRINT_MEDIA
+
         MOV AH,9
         LEA DX,TABELA
         INT 21h
+
+        MOV BYTE PTR [DI],10
 
         RET
 
@@ -591,20 +664,3 @@ TITLE notas
 
 
 END MAIN                                                ;Fechamento do codigo
-
-;VER SE COMPENSA ASPAS SIMPLES OU DUPLAS
-;IMPLEMENTAR _ NAS NOTAS
-;CORES NA MEDIA
-;NA EDITAR, FAZER PRINTAR O NOME DELE E COMEÇA NO FINAL, PARA PODER APAGAR MELHOR
-;para editar, pegar da propria tabela: colocar um $ temporario e armazenar o valor onde o $ vai entrar em cima num registrador (o $ deve ser colocado em cima de um "-" - talvez nao precise de registrador -, ou seja, é necessario usar as instrucoes novas para descobrir onde fica o primeiro da linha
-;alterar a macro2 para os casos de linha a linha, nao de linha especifica
-;na leitura de ID, se for 0, soh ler outro char
-
-;MACRO PARA APAGAR UM CHAR, TALVEZ SOH UM 32 E UM 8, NAO 8,32,8
-
-;BL: DIGITOS QUE PODE APAGAR + 1
-;IMPEDIR DE APAGAR AS MENSAGENS E TAL
-;INCLUIR SAIDAS PARA QUANDO NAO TIVER ALUNOS
-
-;SE COLOCAR 2-9 NO DIGITO DA DEZENA, MOVE PARA UNIDADE E ACABA PROC
-;SE DIGITOU 1 NA DEZENA, SOH PODE ESPERAR 0 OU ENTER
