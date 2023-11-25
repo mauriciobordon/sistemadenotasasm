@@ -65,7 +65,7 @@ TITLE notas
 
     PESOS DB 1,1,1
     TABELA DB 10,13, "ID--NOME", 30 DUP('-'), "P1", 4 DUP('-'), "P2", 4 DUP('-'), "P3", 4 DUP('-'), "MEDIA"
-           DB 5 DUP(10,13, "00--", 34 DUP('-'), "00", 4 DUP('-'), "00", 4 DUP('-'), "00", 4 DUP('-'), "00"), '$'
+           DB 5 DUP(10,13, "00--", 34 DUP('-'), 3 DUP("00", 4 DUP('-')), "00"), '$'
     MSG_MENU DB 10,13,"Escolha uma opcao:"
              DB 10,13,"    1- Incluir aluno"
              DB 10,13,"    2- Incluir/alterar notas"
@@ -566,11 +566,10 @@ TITLE notas
 
     @PRINTATABELA PROC                                  ;Abertura do procedimento de print da tabela
 
-        LEA DI,TABELA[63]
-        LEA BX,PESOS
-        ; XOR DX,DX
-        ; XOR AX,AX
-        CLD
+        LEA BX,PESOS                                    ;Aponta BX para o vetor de pesos
+        LEA SI,TABELA[103]                              ;Aponta SI para o primeiro algarismo da primeira nota
+        LEA DI,TABELA[63]                               ;Aponta DI para acima do final da primeira linha de dados
+        XOR DX,DX
 
         MOV CL,MSG_A_INSIRA[26]
         AND CX,0Fh
@@ -579,32 +578,26 @@ TITLE notas
             ADD DI,60
         LOOP PRINT_FINAL
 
-        MOV BYTE PTR [DI],'$'
-
-        LEA SI,TABELA[123]
-
         MOV CX,3
-
         PRINT_DIVISOR:
             MOV DH,[BX]
-            ADD DL,DH
             INC BX
+            ADD DL,DH ;DIVISOR EM DL
         LOOP PRINT_DIVISOR
+
+        MOV BYTE PTR [DI],'$'
         XOR DH,DH
-        PUSH DX
 
         MOV CL,MSG_A_INSIRA[26]
         AND CX,0Fh
-
         PRINT_MEDIA:
         PUSH CX
-            SUB BX,3
-            MOV CX,3
+        PUSH DX
             XOR DX,DX
-
+            MOV CX,3
+            SUB BX,3
             PRINT_SOMATORIA:
                 PUSH DX
-
                 CMP BYTE PTR [SI],31h
                 JE PRINT_DEZ
                 INC SI
@@ -613,20 +606,17 @@ TITLE notas
                 JMP PRINT_MULPESO
                 PRINT_DEZ: MOV AL,10
                 INC SI
-                
                 PRINT_MULPESO: MOV DL,[BX]
                 INC BX
-
                 MUL DL
                 POP DX
-                ADD DX,AX ;APOS LOOP, DIVIDENDO EM BX
+                ADD DX,AX
                 ADD SI,5
             LOOP PRINT_SOMATORIA
 
             MOV AX,DX
             XOR DX,DX
             POP CX
-
             DIV CX
 
             CMP AX,10
@@ -636,14 +626,14 @@ TITLE notas
             OR AL,30h
             MOV [SI],AL
             JMP PRINT_CONTINUA
-
             PRINT_MEDIADEZ: MOV BYTE PTR [SI],31h
             INC SI
             MOV BYTE PTR [SI],30h
+            PRINT_CONTINUA:
+            ADD SI,41
 
-            PRINT_CONTINUA: ADD SI,42
-            MOV BX,CX
-        POP CX
+            MOV DX,CX
+            POP CX
         LOOP PRINT_MEDIA
 
         MOV AH,9
@@ -658,9 +648,16 @@ TITLE notas
 
     @REMOVERALUNO PROC                                  ;Abertura do procedimento de remocao de aluno
 
+        MOV AH,9
+        LEA DX,TABELA
+        INT 21h
+
         RET
 
     @REMOVERALUNO ENDP                                  ;Fechamento do procedimento de remocao de aluno
 
 
 END MAIN                                                ;Fechamento do codigo
+
+;erro quando todos os pesos sao zero
+;padronizar as entradas: nao aparecem numeros invalidos na tela, nao tem mensagem de erro de intervalo, soh termina quando tiver o enter
